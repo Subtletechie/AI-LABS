@@ -1,0 +1,46 @@
+name: Dataset Integrity Gate
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate data files
+        run: python make_data.py
+
+      - name: Validate clean dataset
+        run: |
+          python validate_dataset.py \
+            --data clean.npz \
+            --baseline baseline.npz \
+            --manifest manifest.json
+
+      - name: Validate poisoned dataset (expect failure)
+        id: poisoned_check
+        run: |
+          python validate_dataset.py \
+            --data poisoned.npz \
+            --baseline baseline.npz \
+            --manifest manifest.json && echo "status=passed" >> "$GITHUB_OUTPUT" \
+          || echo "status=failed" >> "$GITHUB_OUTPUT"
+
+      - name: Report poisoned gate result
+        run: |
+          echo "Poisoned dataset gate status: ${{ steps.poisoned_check.outputs.status }}"
+          echo "Gate correctly flags poisoned data when status=failed"

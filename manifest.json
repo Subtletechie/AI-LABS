@@ -1,0 +1,7 @@
+{
+  "files": {
+    "baseline.npz": "0abf99e05cce761595a5f2a37b1472978abf9abca276362e465276ce8321b0f4",
+    "clean.npz": "e3d004de3861cbd54004dbfa0bd48b9ca9ca323eec307535e196fb974dbf6217",
+    "poisoned.npz": "e7f48472d28d82c89dc41ef707b57c0db30d08c852c3b664a50b2a766d077109"
+  }
+}
