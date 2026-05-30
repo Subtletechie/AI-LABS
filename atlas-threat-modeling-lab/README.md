@@ -2,11 +2,11 @@
 
 ## What this lab is
 
-A hands-on, no-code exercise. You take a realistic AI system and work it through the MITRE ATLAS framework to produce a threat model. No setup, no tools  just the worksheet and your thinking. Time: 45–60 minutes, best done in pairs.
+A hands-on, no-code exercise. You take a realistic AI system and work it through the MITRE ATLAS framework to produce a threat model. No setup, no tools - just the worksheet and your thinking. Time: 45–60 minutes, best done in pairs.
 
 ## The scenario
 
-NorthBank deploys a customer-facing LLM chatbot on its website. Customers ask it questions about their accounts in natural language. The chatbot was fin tuned on NorthBank's internal documentation, retrieves answers from a knowledge base of policy documents, and can call an internal API to look up a logged-in customer's real account balance. It is reachable by anyone on the public internet.
+NorthBank deploys a customer-facing LLM chatbot on its website. Customers ask it questions about their accounts in natural language. The chatbot was fine-tuned on NorthBank's internal documentation, retrieves answers from a knowledge base of policy documents, and can call an internal API to look up a logged-in customer's real account balance. It is reachable by anyone on the public internet.
 
 ## Your task
 
@@ -14,9 +14,9 @@ Work through each ATLAS tactic in the worksheet. For each, decide whether and ho
 
 ## Files in this lab
 
-- `WORKSHEET.md` — the table you fill in (or download `worksheet.csv` to fill in a spreadsheet)
-- `ATLAS_PRIMER.md` — description of each ATLAS tactic
-- `worksheet.csv` — same worksheet as a downloadable spreadsheet
-- `SUBMISSION.md` — what to hand in
+- `WORKSHEET.md` - the table you fill in (or download `worksheet.csv` to fill in a spreadsheet)
+- `ATLAS_PRIMER.md` - plain-English description of each ATLAS tactic
+- `worksheet.csv` - same worksheet as a downloadable spreadsheet
+- `SUBMISSION.md` - what to hand in
 
 > Note: the full ATLAS framework has 16 tactics; this lab focuses on the core lifecycle tactics. The complete matrix is at https://atlas.mitre.org.

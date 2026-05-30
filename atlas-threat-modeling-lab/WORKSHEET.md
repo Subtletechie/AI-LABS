@@ -1,4 +1,4 @@
-# NorthBank Chatbot — ATLAS Threat Modeling Worksheet
+# NorthBank Chatbot - ATLAS Threat Modeling Worksheet
 
 Fill in the blank cells. Use `ATLAS_PRIMER.md` as a reference for each tactic.
 
