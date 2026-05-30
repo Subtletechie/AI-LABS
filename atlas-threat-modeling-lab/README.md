@@ -15,7 +15,7 @@ Work through each ATLAS tactic in the worksheet. For each, decide whether and ho
 ## Files in this lab
 
 - `WORKSHEET.md` — the table you fill in (or download `worksheet.csv` to fill in a spreadsheet)
-- `ATLAS_PRIMER.md` — plain-English description of each ATLAS tactic
+- `ATLAS_PRIMER.md` — description of each ATLAS tactic
 - `worksheet.csv` — same worksheet as a downloadable spreadsheet
 - `SUBMISSION.md` — what to hand in
 
