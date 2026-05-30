@@ -1,5 +1,7 @@
 # AI Threat Modeling with MITRE ATLAS
 
+> **Download:** If you want to fill in the worksheet as a spreadsheet, download [`worksheet.csv`](worksheet.csv) before you start.
+
 ## What this lab is
 
 A hands-on, no-code exercise. You take a realistic AI system and work it through the MITRE ATLAS framework to produce a threat model. No setup, no tools, just the worksheet and your thinking. Time: 45–60 minutes, best done in pairs.
