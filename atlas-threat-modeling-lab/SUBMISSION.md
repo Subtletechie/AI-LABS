@@ -4,7 +4,7 @@
 
 Submit the following as a single document or zipped folder:
 
-1. **Your completed worksheet** - either `WORKSHEET.md` with all cells filled in, or your filled-in `worksheet.csv`. Every row must have an entry in all three columns.
+1. **Your completed worksheet**: either `WORKSHEET.md` with all cells filled in, or your filled-in `worksheet.csv`. Every row must have an entry in all three columns.
 
 2. **A short paragraph** (5–8 sentences) naming your top 3 threats and the control you would apply to each. Explain *why* each threat ranked highly (consider likelihood and impact separately before combining them).
 
@@ -12,7 +12,7 @@ Submit the following as a single document or zipped folder:
 
 ## Reflection questions
 
-Answer each question in 3–5 sentences. There are no trick questions - these are designed to surface the reasoning behind your threat model.
+Answer each question in 3–5 sentences. There are no trick questions. These are designed to surface the reasoning behind your threat model.
 
 1. **Authorization boundary**: Why must the balance-lookup authorization live in your application logic rather than the model's instructions? What happens if you rely on the model's system prompt to enforce access control?
 
