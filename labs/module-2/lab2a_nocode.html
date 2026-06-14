@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Securing the AI Pipeline — Lab 2A</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #7ab3d4;
+    --panel: #1e3a5f;
+    --accent: #4a90d9;
+    --text-light: #ffffff;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --red-dark: #8b0000;
+    --yellow: #f1c40f;
+    --font-head: 'Barlow', sans-serif;
+    --font-body: 'Open Sans', sans-serif;
+    --radius: 12px;
+    --transition: 0.35s ease;
+  }
+
+  html, body {
+    min-height: 100%;
+    background: var(--bg);
+    font-family: var(--font-body);
+    color: var(--text-light);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── PROGRESS BAR ── */
+  #progress-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(30,58,95,0.97);
+    padding: 10px 24px;
+    display: none;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  #progress-wrap.visible { display: flex; }
+  #progress-label { font-family: var(--font-head); font-size: 0.82rem; font-weight: 600; white-space: nowrap; min-width: 90px; }
+  #progress-bar-track {
+    flex: 1;
+    height: 10px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  #progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 99px;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* ── SECTIONS ── */
+  .section {
+    display: none;
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity var(--transition), transform var(--transition);
+    flex: 1;
+  }
+  .section.active {
+    display: block;
+  }
+  .section.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .section-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  /* ── INTRO ── */
+  #intro .section-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 60px);
+    text-align: center;
+    gap: 24px;
+  }
+  .intro-title {
+    font-family: var(--font-head);
+    font-size: clamp(2.2rem, 6vw, 3.8rem);
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--panel);
+    text-shadow: 0 2px 12px rgba(255,255,255,0.25);
+  }
+  .intro-subtitle {
+    font-family: var(--font-head);
+    font-size: 1.2rem;
+    font-weight: 600;
+    opacity: 0.85;
+    color: var(--panel);
+  }
+  .intro-para {
+    font-size: 1.05rem;
+    max-width: 600px;
+    color: var(--panel);
+    line-height: 1.7;
+  }
+
+  /* ── GENERIC COMPONENTS ── */
+  .card {
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    color: var(--text-light);
+  }
+
+  .stage-title {
+    font-family: var(--font-head);
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .stage-badge {
+    background: var(--accent);
+    color: white;
+    border-radius: 8px;
+    padding: 2px 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .concept-box {
+    background: var(--panel);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    font-size: 0.97rem;
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+
+  .task-label {
+    font-family: var(--font-head);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+    color: var(--text-light);
+  }
+
+  .feedback {
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-top: 14px;
+    display: none;
+  }
+  .feedback.show { display: block; }
+  .feedback.good { background: rgba(46,204,113,0.15); border: 1.5px solid var(--green); color: #a8f0c8; }
+  .feedback.bad  { background: rgba(231,76,60,0.15);  border: 1.5px solid var(--red);   color: #f5a9a9; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-block;
+    padding: 13px 30px;
+    border: none;
+    border-radius: 50px;
+    font-family: var(--font-head);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
+  .btn:active { transform: translateY(0); box-shadow: none; }
+  .btn-accent { background: var(--accent); color: white; }
+  .btn-start { background: var(--accent); color: white; font-size: 1.25rem; padding: 18px 52px; }
+  .btn-next { background: var(--green); color: #0d2b17; margin-top: 24px; display: none; }
+  .btn-next.show { display: inline-block; }
+  .btn-red { background: var(--red); color: white; }
+  .btn-green { background: var(--green); color: #0d2b17; }
+  .btn-check { background: var(--accent); color: white; display: none; }
+  .btn-check.show { display: inline-block; }
+
+  /* ── STAGE 1 ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 18px 0 22px;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .data-table th {
+    background: rgba(74,144,217,0.3);
+    padding: 10px 14px;
+    text-align: left;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .data-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    font-family: monospace;
+    font-size: 0.95rem;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:nth-child(even) td { background: rgba(255,255,255,0.04); }
+  .row-poison td { background: rgba(231,76,60,0.22) !important; color: #ffaaaa; }
+
+  .radio-options { display: flex; flex-direction: column; gap: 10px; margin: 0 0 14px; }
+  .radio-opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  .radio-opt:hover { border-color: var(--accent); background: rgba(74,144,217,0.1); }
+  .radio-opt input[type=radio] { margin-top: 3px; accent-color: var(--accent); flex-shrink: 0; }
+
+  .checklist { display: none; margin-top: 18px; }
+  .checklist.show { display: block; }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.35s, transform 0.35s;
+    background: rgba(46,204,113,0.08);
+    border: 1px solid rgba(46,204,113,0.2);
+    margin-bottom: 8px;
+  }
+  .check-item.visible { opacity: 1; transform: translateX(0); }
+  .check-icon { color: var(--green); font-size: 1.2rem; }
+
+  /* ── STAGE 2 ── */
+  .panels-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+  @media (max-width: 580px) { .panels-row { grid-template-columns: 1fr; } }
+
+  .panel-box {
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    min-height: 120px;
+  }
+  .panel-label {
+    font-family: var(--font-head);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+    opacity: 0.7;
+  }
+  .panel-box.attacker { border: 2px solid var(--red-dark); }
+  .panel-box.pipeline { border: 2px dashed rgba(74,144,217,0.4); }
+  .attacker-text { font-family: monospace; font-size: 0.92rem; line-height: 1.7; }
+  .newline-sym { color: #ff9966; }
+  .pipeline-placeholder { color: rgba(255,255,255,0.35); font-size: 0.9rem; font-style: italic; }
+
+  .chips-source {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 16px 0 20px;
+  }
+  .chip {
+    background: var(--accent);
+    color: white;
+    border-radius: 50px;
+    padding: 8px 18px;
+    font-family: var(--font-head);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    transition: opacity 0.2s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .chip:active { cursor: grabbing; }
+  .chip.used { opacity: 0.3; cursor: default; }
+
+  .drop-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .drop-slot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 2px dashed rgba(74,144,217,0.4);
+    border-radius: 10px;
+    padding: 12px 16px;
+    min-height: 48px;
+    transition: border-color 0.2s, background 0.2s;
+    font-size: 0.92rem;
+  }
+  .drop-slot.over { border-color: var(--accent); background: rgba(74,144,217,0.12); }
+  .drop-slot.filled { border-style: solid; border-color: var(--accent); }
+  .slot-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-head);
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .slot-content { flex: 1; }
+  .slot-empty-hint { color: rgba(255,255,255,0.35); font-style: italic; font-size: 0.87rem; }
+
+  .sanitized-badge {
+    display: inline-block;
+    background: var(--green);
+    color: #0d2b17;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: var(--font-head);
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* ── STAGE 3 ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  @media (max-width: 580px) { .two-col { grid-template-columns: 1fr; } }
+
+  .col-panel {
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .col-panel-title {
+    font-family: var(--font-head);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.65;
+    margin-bottom: 12px;
+  }
+  .unpinned-item {
+    font-family: monospace;
+    font-size: 0.95rem;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    color: #ffaaaa;
+  }
+  .pinned-slot {
+    height: 42px;
+    border: 1.5px dashed rgba(255,255,255,0.2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+    transition: background 0.2s;
+  }
+  .pinned-slot.filled { color: #a8f0c8; border-style: solid; border-color: var(--green); background: rgba(46,204,113,0.08); font-style: normal; }
+
+  .pkg-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 16px 0 20px;
+  }
+  @media (max-width: 480px) { .pkg-cards { grid-template-columns: 1fr; } }
+  .pkg-card {
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.14);
+    border-radius: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 0.9rem;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .pkg-card:hover { border-color: var(--accent); background: rgba(74,144,217,0.12); }
+  .pkg-card.added { border-color: var(--green); background: rgba(46,204,113,0.1); cursor: default; opacity: 0.7; }
+  .pkg-card.decoy:hover { border-color: var(--red); background: rgba(231,76,60,0.1); }
+
+  .log-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .log-chip {
+    background: rgba(74,144,217,0.2);
+    border: 1.5px solid var(--accent);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-family: monospace;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: opacity 0.2s, background 0.2s;
+  }
+  .log-chip:hover { background: rgba(74,144,217,0.35); }
+  .log-chip.used { opacity: 0.3; cursor: default; }
+
+  .log-panel {
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+    padding: 14px 16px;
+    min-height: 100px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    line-height: 1.8;
+  }
+  .log-entry {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    flex-direction: column;
+  }
+  .log-key { color: #7ec8e3; font-weight: bold; }
+  .log-tooltip { font-size: 0.78rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+  /* ── STAGE 4 ── */
+  .model-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  @media (max-width: 540px) { .model-cards { grid-template-columns: 1fr; } }
+
+  .model-card {
+    background: var(--panel);
+    border: 2px solid rgba(74,144,217,0.3);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    transition: border-color 0.3s;
+  }
+  .model-card.match { border-color: var(--green); }
+  .model-card.mismatch { border-color: var(--red); }
+  .model-card-title {
+    font-family: var(--font-head);
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    opacity: 0.75;
+  }
+  .model-icon { font-size: 2.4rem; margin-bottom: 10px; }
+  .hash-display {
+    font-family: monospace;
+    font-size: 0.78rem;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-top: 10px;
+    word-break: break-all;
+    min-height: 38px;
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+  .hash-display.show { display: block; }
+  .tamper-badge {
+    background: var(--red);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 3px 10px;
+    display: none;
+    margin-top: 8px;
+  }
+  .tamper-badge.show { display: inline-block; }
+
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)}
+    60%{transform:translateX(-6px)}
+    80%{transform:translateX(6px)}
+  }
+  .shaking { animation: shake 0.5s ease; }
+
+  .hash-compare {
+    text-align: center;
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 12px;
+    border-radius: 10px;
+    margin: 10px 0;
+    display: none;
+  }
+  .hash-compare.show { display: block; }
+  .hash-compare.match { background: rgba(46,204,113,0.15); color: var(--green); }
+  .hash-compare.mismatch { background: rgba(231,76,60,0.15); color: #ff9999; }
+
+  /* ── STAGE 5 ── */
+  .bar-group { margin-bottom: 22px; }
+  .bar-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .bar-label { font-family: var(--font-head); font-size: 0.95rem; font-weight: 600; }
+  .bar-pct { font-family: var(--font-head); font-size: 1rem; font-weight: 700; }
+  .bar-pct.green { color: var(--green); }
+  .bar-pct.red { color: #ff9999; }
+  .bar-track {
+    height: 22px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 99px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 99px;
+    transition: width 1.4s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(0,0,0,0.7);
+  }
+  .bar-fill.green { background: linear-gradient(90deg, #27ae60, var(--green)); }
+  .bar-fill.red-fill { background: linear-gradient(90deg, #c0392b, var(--red)); }
+
+  .verdict-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 6px;
+    font-family: var(--font-head);
+    font-size: 0.88rem;
+    font-weight: 700;
+    margin-left: 8px;
+  }
+  .verdict-pass { background: var(--green); color: #0d2b17; }
+  .verdict-fail { background: var(--red); color: white; }
+
+  .approval-btns { display: flex; gap: 14px; margin-top: 22px; flex-wrap: wrap; }
+  .btn-yes { background: var(--green); color: #0d2b17; font-size: 1rem; }
+  .btn-no  { background: var(--red);   color: white;   font-size: 1rem; }
+
+  .audit-trail {
+    display: none;
+    margin-top: 20px;
+  }
+  .audit-trail.show { display: block; }
+  .audit-badges { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 8px; }
+  .audit-badge {
+    background: rgba(74,144,217,0.2);
+    border: 1.5px solid var(--accent);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+  .audit-badge.visible { opacity: 1; transform: translateY(0); }
+  .audit-caption { font-size: 0.88rem; color: rgba(255,255,255,0.65); line-height: 1.5; }
+
+  /* ── STAGE 6 ── */
+  .api-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 580px) { .api-grid { grid-template-columns: 1fr; } }
+
+  .api-panel {
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .api-panel-title {
+    font-family: var(--font-head);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.65;
+    margin-bottom: 14px;
+  }
+  .api-input-label {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    opacity: 0.8;
+  }
+  .api-input {
+    width: 100%;
+    background: rgba(0,0,0,0.25);
+    border: 1.5px solid rgba(74,144,217,0.35);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: white;
+    font-family: monospace;
+    font-size: 0.92rem;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .api-input:focus { border-color: var(--accent); }
+  .api-hint { font-size: 0.8rem; color: rgba(255,255,255,0.45); margin-top: 8px; }
+
+  .req-log {
+    background: rgba(0,0,0,0.35);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    min-height: 180px;
+    max-height: 260px;
+    overflow-y: auto;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.75);
+  }
+  .log-200 { color: #a8f0c8; }
+  .log-401 { color: #ffaaaa; }
+  .log-429 { color: #ffe08a; }
+
+  .code-badges {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .code-badge {
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-family: var(--font-head);
+    font-size: 0.82rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.08);
+    border: 1.5px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.5);
+    transition: 0.3s;
+  }
+  .code-badge.seen { background: rgba(46,204,113,0.15); border-color: var(--green); color: #a8f0c8; }
+
+  /* ── COMPLETION ── */
+  #completion .section-inner {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+  .completion-title {
+    font-family: var(--font-head);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    color: var(--panel);
+  }
+
+  .pipeline-graphic {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+    max-width: 780px;
+  }
+  .pipe-node {
+    background: var(--panel);
+    border: 2.5px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-family: var(--font-head);
+    font-size: 0.82rem;
+    font-weight: 700;
+    opacity: 0.45;
+    transition: 0.4s;
+    white-space: nowrap;
+  }
+  .pipe-node.lit {
+    border-color: var(--green);
+    background: rgba(46,204,113,0.15);
+    opacity: 1;
+    color: #a8f0c8;
+  }
+  .pipe-arrow {
+    color: rgba(255,255,255,0.3);
+    font-size: 1.1rem;
+    padding: 0 4px;
+  }
+
+  .takeaway-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    width: 100%;
+    max-width: 640px;
+  }
+  .takeaway-card {
+    background: var(--panel);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    text-align: left;
+    font-family: var(--font-head);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  /* ── CONFETTI ── */
+  .confetti-piece {
+    position: fixed;
+    top: -20px;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    opacity: 0;
+    animation: confettiFall linear forwards;
+    z-index: 9999;
+    pointer-events: none;
+  }
+  @keyframes confettiFall {
+    0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(110vh) rotate(720deg); }
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--panel);
+    text-align: center;
+    padding: 16px;
+    font-size: 0.82rem;
+    opacity: 0.7;
+    font-family: var(--font-head);
+    letter-spacing: 0.03em;
+    margin-top: auto;
+  }
+
+  @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: none; } }
+
+  .section-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 28px 0; }
+
+  .sub-section-title {
+    font-family: var(--font-head);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 20px 0 10px;
+    color: rgba(255,255,255,0.85);
+  }
+
+  .drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.85;
+    transform: scale(1.05);
+    background: var(--accent);
+    color: white;
+    border-radius: 50px;
+    padding: 8px 18px;
+    font-family: var(--font-head);
+    font-size: 0.88rem;
+    font-weight: 600;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- PROGRESS BAR -->
+<div id="progress-wrap">
+  <span id="progress-label">Stage 1 / 6</span>
+  <div id="progress-bar-track">
+    <div id="progress-bar-fill"></div>
+  </div>
+</div>
+
+<!-- DRAG GHOST -->
+<div class="drag-ghost" id="drag-ghost"></div>
+
+<!-- ══════════════════════════════════════
+     INTRO
+═══════════════════════════════════════ -->
+<section id="intro" class="section active">
+  <div class="section-inner">
+    <h1 class="intro-title">Securing the AI Pipeline</h1>
+    <p class="intro-subtitle">No coding required &middot; learn by doing</p>
+    <p class="intro-para">Every AI system moves data through a pipeline — from ingestion to deployment. At each stage, an attacker has an opportunity. Today you'll find and fix the vulnerability at six critical stages. No Python needed.</p>
+    <button class="btn btn-start" onclick="goTo('stage1')">START →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     STAGE 1 — DATA INGESTION
+═══════════════════════════════════════ -->
+<section id="stage1" class="section">
+  <div class="section-inner">
+    <h2 class="stage-title"><span class="stage-badge">Stage 1</span> Data Ingestion</h2>
+    <div class="concept-box">
+      Data poisoning happens when an attacker quietly modifies training data before it reaches the model. Because the change is subtle, it often passes unnoticed — until the model behaves unexpectedly in production.
+    </div>
+
+    <div class="card">
+      <div class="task-label">Examine the incoming training data:</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>row_id</th><th>feature_score</th><th>label</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0</td><td>0.91</td><td>1</td></tr>
+          <tr><td>1</td><td>0.85</td><td>1</td></tr>
+          <tr><td>2</td><td>0.78</td><td>0</td></tr>
+          <tr><td>3</td><td>0.82</td><td>1</td></tr>
+          <tr><td>4</td><td>0.66</td><td>0</td></tr>
+          <tr><td>5</td><td>0.73</td><td>0</td></tr>
+          <tr><td>6</td><td>0.88</td><td>1</td></tr>
+          <tr class="row-poison"><td>7</td><td>0.02</td><td>1</td></tr>
+          <tr><td>8</td><td>0.79</td><td>1</td></tr>
+          <tr><td>9</td><td>0.84</td><td>1</td></tr>
+        </tbody>
+      </table>
+
+      <div class="task-label">Which row looks suspicious and why?</div>
+      <div class="radio-options" id="s1-options">
+        <label class="radio-opt">
+          <input type="radio" name="s1" value="A" onchange="checkS1(this)" />
+          <span><strong>A)</strong> Row 2 — feature_score 0.78 seems low</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="s1" value="B" onchange="checkS1(this)" />
+          <span><strong>B)</strong> Row 4 — label is 0 for a mid-range score</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="s1" value="C" onchange="checkS1(this)" />
+          <span><strong>C)</strong> Row 7 — feature_score 0.02 but label is 1</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="s1" value="D" onchange="checkS1(this)" />
+          <span><strong>D)</strong> Row 9 — feature_score looks too high</span>
+        </label>
+      </div>
+
+      <div class="feedback bad" id="s1-fb-A">
+        Row 2 has a feature_score of 0.78, which is well within the normal range visible in this dataset (0.66–0.91). A label of 0 is perfectly reasonable for that score — there's nothing inconsistent here.
+      </div>
+      <div class="feedback bad" id="s1-fb-B">
+        Row 4 has a feature_score of 0.66 and a label of 0. Mid-range scores with label 0 appear elsewhere in the dataset too (row 5: 0.73 → 0). This is consistent with normal variation, not an anomaly.
+      </div>
+      <div class="feedback good" id="s1-fb-C">
+        Correct! Row 7 has a feature_score of 0.02 — far below any other row — yet its label is 1. This inconsistency is a classic data poisoning signature. An attacker who controls the data source can insert rows like this to influence how the model learns.
+      </div>
+      <div class="feedback bad" id="s1-fb-D">
+        Row 9 has a feature_score of 0.84, which is similar to rows 1 (0.85) and 6 (0.88). There's nothing unusual about a high score having label 1 — that's exactly what you'd expect in a well-labelled dataset.
+      </div>
+
+      <div class="checklist" id="s1-checklist">
+        <div class="section-divider"></div>
+        <div class="sub-section-title">Applying validation fix…</div>
+        <div class="check-item" id="s1-c1"><span class="check-icon">✓</span> Source is in the approved list</div>
+        <div class="check-item" id="s1-c2"><span class="check-icon">✓</span> feature_score is in valid range (0.1 – 1.0)</div>
+        <div class="check-item" id="s1-c3"><span class="check-icon">✓</span> Label is consistent with feature range</div>
+      </div>
+    </div>
+
+    <button class="btn btn-next" id="s1-next" onclick="goTo('stage2')">NEXT: Data Processing →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     STAGE 2 — DATA PROCESSING
+═══════════════════════════════════════ -->
+<section id="stage2" class="section">
+  <div class="section-inner">
+    <h2 class="stage-title"><span class="stage-badge">Stage 2</span> Data Processing</h2>
+    <div class="concept-box">
+      Injection attacks embed special characters or commands inside input data. If your preprocessing function doesn't sanitize inputs, those characters survive into downstream systems — including prompts, logs, or databases.
+    </div>
+
+    <div class="panels-row">
+      <div class="panel-box attacker">
+        <div class="panel-label">Attacker Input</div>
+        <div class="attacker-text">normal text<span class="newline-sym">↵</span><span class="newline-sym">↵</span>IGNORE PREVIOUS INSTRUCTIONS<span class="newline-sym">↵</span></div>
+      </div>
+      <div class="panel-box pipeline" id="s2-pipeline">
+        <div class="panel-label">Your Pipeline</div>
+        <div class="pipeline-placeholder" id="s2-pipeline-content">← Drag controls here to protect this input</div>
+      </div>
+    </div>
+
+    <div class="task-label">Drag the controls into the correct processing order:</div>
+    <div class="chips-source" id="s2-chips">
+      <div class="chip" id="chip-remove" draggable="true" data-label="Remove control characters">Remove control characters</div>
+      <div class="chip" id="chip-length" draggable="true" data-label="Enforce max length">Enforce max length</div>
+      <div class="chip" id="chip-log"    draggable="true" data-label="Log suspicious inputs">Log suspicious inputs</div>
+    </div>
+
+    <div class="drop-slots" id="s2-slots">
+      <div class="drop-slot" id="slot-1" data-slot="1">
+        <div class="slot-num">1</div>
+        <div class="slot-content">
+          <span class="slot-empty-hint">Drop first step here…</span>
+        </div>
+      </div>
+      <div class="drop-slot" id="slot-2" data-slot="2">
+        <div class="slot-num">2</div>
+        <div class="slot-content">
+          <span class="slot-empty-hint">Drop second step here…</span>
+        </div>
+      </div>
+      <div class="drop-slot" id="slot-3" data-slot="3">
+        <div class="slot-num">3</div>
+        <div class="slot-content">
+          <span class="slot-empty-hint">Drop third step here…</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-check btn-accent" id="s2-check-btn" onclick="checkS2()">Check Order</button>
+    <div class="feedback" id="s2-feedback"></div>
+
+    <button class="btn btn-next" id="s2-next" onclick="goTo('stage3')">NEXT: Training →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     STAGE 3 — TRAINING
+═══════════════════════════════════════ -->
+<section id="stage3" class="section">
+  <div class="section-inner">
+    <h2 class="stage-title"><span class="stage-badge">Stage 3</span> Training</h2>
+    <div class="concept-box">
+      Unpinned dependencies mean your training environment can silently change. A library update might alter how a model is built — making results impossible to reproduce and creating hidden vulnerabilities.
+    </div>
+
+    <div class="two-col">
+      <div class="col-panel">
+        <div class="col-panel-title">Unpinned (Unsafe)</div>
+        <div class="unpinned-item">scikit-learn</div>
+        <div class="unpinned-item">pandas</div>
+        <div class="unpinned-item">numpy</div>
+      </div>
+      <div class="col-panel">
+        <div class="col-panel-title">Your Pinned Requirements</div>
+        <div class="pinned-slot" id="pin-0"><span class="slot-empty-hint">— empty —</span></div>
+        <div class="pinned-slot" id="pin-1"><span class="slot-empty-hint">— empty —</span></div>
+        <div class="pinned-slot" id="pin-2"><span class="slot-empty-hint">— empty —</span></div>
+      </div>
+    </div>
+
+    <div class="task-label">Click to add each package you need to pin:</div>
+    <div class="pkg-cards" id="s3-pkgs">
+      <div class="pkg-card" id="pkg-sklearn" onclick="addPkg(this,'scikit-learn==1.4.2','sklearn')">scikit-learn==1.4.2</div>
+      <div class="pkg-card" id="pkg-pandas"  onclick="addPkg(this,'pandas==2.2.1','pandas')">pandas==2.2.1</div>
+      <div class="pkg-card" id="pkg-numpy"   onclick="addPkg(this,'numpy==1.26.4','numpy')">numpy==1.26.4</div>
+      <div class="pkg-card decoy" id="pkg-torch" onclick="addPkg(this,'torch==2.3.0','torch')">torch==2.3.0</div>
+    </div>
+    <div class="feedback" id="s3-pkg-fb"></div>
+
+    <div class="section-divider"></div>
+
+    <div class="sub-section-title">Build a Training Log</div>
+    <p style="font-size:0.9rem;opacity:0.75;margin-bottom:10px;">Click each entry to add it to your training log:</p>
+    <div class="log-chips" id="s3-log-chips">
+      <div class="log-chip" id="lc-dataset"   onclick="addLogEntry(this,'Dataset version: v2.1','Tracks exactly which data snapshot was used — essential for reproducing results.')">Dataset version: v2.1</div>
+      <div class="log-chip" id="lc-sklearn"   onclick="addLogEntry(this,'sklearn version: 1.4.2','Records the exact library version so the training run can be re-created identically.')">sklearn version: 1.4.2</div>
+      <div class="log-chip" id="lc-timestamp" onclick="addLogEntry(this,'Timestamp: 2026-06-14T08:31:00','Documents when the run occurred — useful for audits and correlating with data pipeline events.')">Timestamp: 2026-06-14T08:31:00</div>
+      <div class="log-chip" id="lc-runid"     onclick="addLogEntry(this,'Run ID: train-abc-001','Unique identifier that links model artifacts back to this specific training run.')">Run ID: train-abc-001</div>
+    </div>
+
+    <div class="log-panel" id="s3-log-panel">
+      <span style="color:rgba(255,255,255,0.3);font-style:italic;">Log is empty — add entries above…</span>
+    </div>
+    <div class="feedback" id="s3-log-fb"></div>
+
+    <button class="btn btn-next" id="s3-next" onclick="goTo('stage4')">NEXT: Model Artifacts →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     STAGE 4 — MODEL ARTIFACTS
+═══════════════════════════════════════ -->
+<section id="stage4" class="section">
+  <div class="section-inner">
+    <h2 class="stage-title"><span class="stage-badge">Stage 4</span> Model Artifacts</h2>
+    <div class="concept-box">
+      A model file is just bytes. Without a cryptographic hash, you have no way to know if those bytes were modified after training — by an attacker, a storage error, or a supply-chain substitution.
+    </div>
+
+    <div class="model-cards">
+      <div class="model-card" id="s4-left-card">
+        <div class="model-card-title">model_v1.pkl — ORIGINAL</div>
+        <div class="model-icon">📦</div>
+        <button class="btn btn-accent" style="font-size:0.85rem;padding:8px 20px;" onclick="hashLeft()">HASH</button>
+        <div class="hash-display" id="s4-left-hash"></div>
+      </div>
+      <div class="model-card" id="s4-right-card">
+        <div class="model-card-title">model_v1.pkl — COPY</div>
+        <div class="model-icon">📦</div>
+        <button class="btn btn-accent" style="font-size:0.85rem;padding:8px 20px;" onclick="hashRight()">HASH</button>
+        <div class="hash-display" id="s4-right-hash"></div>
+        <div class="tamper-badge" id="s4-tamper-badge">⚠ One byte changed</div>
+      </div>
+    </div>
+
+    <div class="hash-compare" id="s4-compare"></div>
+
+    <div id="s4-tamper-btn-wrap" style="display:none; margin:14px 0;">
+      <button class="btn btn-red" onclick="simulateTamper()">Simulate Tampering</button>
+    </div>
+
+    <div id="s4-mc" style="display:none;">
+      <div class="section-divider"></div>
+      <div class="task-label">What does this tell you?</div>
+      <div class="radio-options" id="s4-options">
+        <label class="radio-opt">
+          <input type="radio" name="s4" value="A" onchange="checkS4(this)" />
+          <span><strong>A)</strong> The model was trained differently</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="s4" value="B" onchange="checkS4(this)" />
+          <span><strong>B)</strong> The model was tampered with</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="s4" value="C" onchange="checkS4(this)" />
+          <span><strong>C)</strong> The hash function is broken</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="s4" value="D" onchange="checkS4(this)" />
+          <span><strong>D)</strong> Nothing important — hashes change all the time</span>
+        </label>
+      </div>
+      <div class="feedback bad" id="s4-fb-A">
+        Not quite. Different training would produce a different model file from the start. Here, we're comparing the same file before and after storage — the hash mismatch happened after training, which means the change occurred to the artifact itself, not during training.
+      </div>
+      <div class="feedback good" id="s4-fb-B">
+        Exactly. Even a single changed byte produces a completely different SHA-256 hash. This is what makes cryptographic hashing so powerful for integrity verification. The original and tampered files are distinguishable instantly.
+      </div>
+      <div class="feedback bad" id="s4-fb-C">
+        The hash function works correctly — that's exactly why the mismatch was detected. SHA-256 reliably produces different outputs for different inputs. The issue is with the file, not the function.
+      </div>
+      <div class="feedback bad" id="s4-fb-D">
+        Hashes don't change on their own. A SHA-256 hash is deterministic: the same bytes always produce the same hash. If the hash changed, the underlying bytes changed. That change demands investigation.
+      </div>
+    </div>
+
+    <button class="btn btn-next" id="s4-next" onclick="goTo('stage5')">NEXT: Evaluation →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     STAGE 5 — EVALUATION AND APPROVAL
+═══════════════════════════════════════ -->
+<section id="stage5" class="section">
+  <div class="section-inner">
+    <h2 class="stage-title"><span class="stage-badge">Stage 5</span> Evaluation &amp; Approval</h2>
+    <div class="concept-box">
+      A model that scores 91% on standard tests can still be dangerous. Adversarial test sets probe for hidden weaknesses — biases, backdoors, edge cases. Both gates must pass before a model is safe to deploy.
+    </div>
+
+    <div class="card" id="s5-bars-card">
+      <div class="bar-group">
+        <div class="bar-label-row">
+          <span class="bar-label">Standard Test Accuracy</span>
+          <span class="bar-pct green" id="s5-pct-standard">0%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill green" id="s5-bar-standard"></div>
+        </div>
+        <div style="margin-top:6px;">
+          <span class="verdict-badge verdict-pass" id="s5-verdict-standard" style="display:none;">PASS ✓</span>
+        </div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label-row">
+          <span class="bar-label">Adversarial Test Accuracy</span>
+          <span class="bar-pct red" id="s5-pct-adv">0%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill red-fill" id="s5-bar-adv"></div>
+        </div>
+        <div style="margin-top:6px;">
+          <span class="verdict-badge verdict-fail" id="s5-verdict-adv" style="display:none;">FAIL ✗ (threshold: 70%)</span>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <div class="task-label">Should this model be approved for deployment?</div>
+        <div class="approval-btns">
+          <button class="btn btn-yes" onclick="s5Vote('yes')">YES — Approve this model</button>
+          <button class="btn btn-no"  onclick="s5Vote('no')">NO — Reject this model</button>
+        </div>
+        <div class="feedback bad" id="s5-fb-yes">
+          Not safe. The adversarial accuracy of 68% is below the required 70% threshold. A model that fails adversarial testing may behave unpredictably on edge cases, adversarial inputs, or inputs that differ from the training distribution. Both gates must pass.
+        </div>
+        <div class="feedback good" id="s5-fb-no">
+          Correct. An approval gate requires ALL checks to pass. 91% standard accuracy looks good — but the 68% adversarial score reveals a weakness that could be exploited. The model needs more work before deployment.
+        </div>
+      </div>
+    </div>
+
+    <div class="audit-trail card" id="s5-audit" style="margin-top:18px;">
+      <div class="sub-section-title">Audit Trail</div>
+      <div class="audit-badges" id="s5-audit-badges">
+        <div class="audit-badge" id="ab-1">📦 Dataset: v2.1</div>
+        <div class="audit-badge" id="ab-2">🔧 Code: commit a3f2e1d</div>
+        <div class="audit-badge" id="ab-3">⚙️ Params: lr=0.01, seed=42</div>
+      </div>
+      <div class="audit-caption">A complete audit trail means you can always reproduce exactly what was trained and why it was approved — or rejected.</div>
+    </div>
+
+    <button class="btn btn-next" id="s5-next" onclick="goTo('stage6')">NEXT: Deployment →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     STAGE 6 — DEPLOYMENT AND MONITORING
+═══════════════════════════════════════ -->
+<section id="stage6" class="section">
+  <div class="section-inner">
+    <h2 class="stage-title"><span class="stage-badge">Stage 6</span> Deployment &amp; Monitoring</h2>
+    <div class="concept-box">
+      A model endpoint without authentication is open to anyone. Rate limiting prevents abuse. Logging every request is the foundation of all monitoring — without it, you have no visibility into how your model is being used.
+    </div>
+
+    <div class="api-grid">
+      <div class="api-panel">
+        <div class="api-panel-title">API Simulator</div>
+        <div class="api-input-label">API Key</div>
+        <input class="api-input" type="text" id="s6-api-key" placeholder="Enter your API key" autocomplete="off" />
+        <button class="btn btn-accent" onclick="sendRequest()" style="width:100%;padding:11px;">Send Request</button>
+        <div class="api-hint">Try: key-student-001 or an invalid key</div>
+      </div>
+      <div class="api-panel">
+        <div class="api-panel-title">Request Log</div>
+        <div class="req-log" id="s6-log">No requests yet…</div>
+      </div>
+    </div>
+
+    <div class="code-badges" id="s6-badges">
+      <div class="code-badge" id="badge-401">401 seen ✗</div>
+      <div class="code-badge" id="badge-200">200 seen ✗</div>
+      <div class="code-badge" id="badge-429">429 seen ✗</div>
+    </div>
+
+    <div class="feedback" id="s6-feedback"></div>
+    <button class="btn btn-next" id="s6-next" onclick="goTo('completion')">NEXT: Complete Lab →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     COMPLETION
+═══════════════════════════════════════ -->
+<section id="completion" class="section">
+  <div class="section-inner">
+    <h1 class="completion-title">Pipeline Secured ✓</h1>
+
+    <div class="pipeline-graphic" id="pipe-graphic">
+      <div class="pipe-node" id="pn-1">Data Ingestion</div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" id="pn-2">Processing</div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" id="pn-3">Training</div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" id="pn-4">Artifacts</div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" id="pn-5">Evaluation</div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" id="pn-6">Deployment</div>
+    </div>
+
+    <div class="takeaway-cards">
+      <div class="takeaway-card">AI security is not one control at one moment</div>
+      <div class="takeaway-card">It is a chain of controls across the whole pipeline</div>
+      <div class="takeaway-card">Attackers find the weakest stage — not just the final model</div>
+    </div>
+
+    <a href="lab2a.ipynb" class="btn btn-accent" style="font-size:1rem;text-decoration:none;">Ready for the coding lab? → Open lab2a.ipynb</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>© 2026 SubtleTechie &middot; subtletech.tech</footer>
+
+<script>
+/* ══════════════════════════════════════
+   NAVIGATION & PROGRESS
+═══════════════════════════════════════ */
+const STAGES = ['intro','stage1','stage2','stage3','stage4','stage5','stage6','completion'];
+const STAGE_LABELS = ['','Stage 1 / 6','Stage 2 / 6','Stage 3 / 6','Stage 4 / 6','Stage 5 / 6','Stage 6 / 6',''];
+const PROGRESS = [0, 16, 33, 50, 66, 83, 100, 100];
+
+let currentIdx = 0;
+
+function goTo(id) {
+  const newIdx = STAGES.indexOf(id);
+  if (newIdx === -1) return;
+
+  const current = document.querySelector('.section.active');
+  if (current) {
+    current.classList.remove('visible');
+    setTimeout(() => {
+      current.classList.remove('active');
+      activateSection(id, newIdx);
+    }, 350);
+  } else {
+    activateSection(id, newIdx);
+  }
+}
+
+function activateSection(id, idx) {
+  currentIdx = idx;
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      el.classList.add('visible');
+    });
+  });
+
+  // Progress bar
+  const wrap = document.getElementById('progress-wrap');
+  const fill = document.getElementById('progress-bar-fill');
+  const label = document.getElementById('progress-label');
+
+  if (id === 'intro' || id === 'completion') {
+    wrap.classList.remove('visible');
+  } else {
+    wrap.classList.add('visible');
+    label.textContent = STAGE_LABELS[idx];
+    fill.style.width = PROGRESS[idx] + '%';
+  }
+
+  // Stage-specific on-enter hooks
+  if (id === 'stage5') initStage5();
+  if (id === 'completion') initCompletion();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ══════════════════════════════════════
+   STAGE 1 — DATA INGESTION
+═══════════════════════════════════════ */
+let s1Done = false;
+
+function checkS1(radio) {
+  if (s1Done) return;
+  const val = radio.value;
+  ['A','B','C','D'].forEach(v => {
+    const fb = document.getElementById('s1-fb-' + v);
+    if (fb) { fb.classList.remove('show'); }
+  });
+
+  const fb = document.getElementById('s1-fb-' + val);
+  if (fb) fb.classList.add('show');
+
+  if (val === 'C') {
+    s1Done = true;
+    // Disable radios
+    document.querySelectorAll('input[name=s1]').forEach(r => r.disabled = true);
+    // Show checklist
+    const cl = document.getElementById('s1-checklist');
+    cl.classList.add('show');
+    const items = ['s1-c1','s1-c2','s1-c3'];
+    items.forEach((id, i) => {
+      setTimeout(() => {
+        document.getElementById(id).classList.add('visible');
+        if (i === items.length - 1) {
+          setTimeout(() => {
+            document.getElementById('s1-next').classList.add('show');
+          }, 400);
+        }
+      }, (i + 1) * 400);
+    });
+  }
+}
+
+/* ══════════════════════════════════════
+   STAGE 2 — DRAG AND DROP
+═══════════════════════════════════════ */
+const CORRECT_ORDER = ['Remove control characters', 'Enforce max length', 'Log suspicious inputs'];
+let slotData = { 1: null, 2: null, 3: null };
+let dragData = { chipId: null, label: null };
+let ghost = document.getElementById('drag-ghost');
+let activeTouchChip = null;
+let touchOffsetX = 0, touchOffsetY = 0;
+
+function initDragDrop() {
+  const chips = document.querySelectorAll('.chip');
+  const slots = document.querySelectorAll('.drop-slot');
+
+  chips.forEach(chip => {
+    // Mouse drag
+    chip.addEventListener('dragstart', e => {
+      if (chip.classList.contains('used')) { e.preventDefault(); return; }
+      dragData.chipId = chip.id;
+      dragData.label = chip.dataset.label;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', chip.dataset.label);
+    });
+    chip.addEventListener('dragend', () => {
+      dragData.chipId = null;
+      dragData.label = null;
+    });
+
+    // Touch events
+    chip.addEventListener('touchstart', e => {
+      if (chip.classList.contains('used')) return;
+      const touch = e.touches[0];
+      const rect = chip.getBoundingClientRect();
+      touchOffsetX = touch.clientX - rect.left;
+      touchOffsetY = touch.clientY - rect.top;
+      activeTouchChip = chip;
+      dragData.chipId = chip.id;
+      dragData.label = chip.dataset.label;
+      ghost.textContent = chip.dataset.label;
+      ghost.style.display = 'block';
+      ghost.style.left = (touch.clientX - touchOffsetX) + 'px';
+      ghost.style.top  = (touch.clientY - touchOffsetY) + 'px';
+      e.preventDefault();
+    }, { passive: false });
+
+    chip.addEventListener('touchmove', e => {
+      if (!activeTouchChip) return;
+      const touch = e.touches[0];
+      ghost.style.left = (touch.clientX - touchOffsetX) + 'px';
+      ghost.style.top  = (touch.clientY - touchOffsetY) + 'px';
+      e.preventDefault();
+    }, { passive: false });
+
+    chip.addEventListener('touchend', e => {
+      if (!activeTouchChip) return;
+      ghost.style.display = 'none';
+      const touch = e.changedTouches[0];
+      // Find which slot is under the touch point
+      let targetSlot = null;
+      slots.forEach(slot => {
+        const r = slot.getBoundingClientRect();
+        if (touch.clientX >= r.left && touch.clientX <= r.right &&
+            touch.clientY >= r.top  && touch.clientY <= r.bottom) {
+          targetSlot = slot;
+        }
+      });
+      if (targetSlot) dropOnSlot(targetSlot, dragData.label, dragData.chipId);
+      activeTouchChip = null;
+      dragData.chipId = null;
+      dragData.label = null;
+    }, { passive: false });
+  });
+
+  slots.forEach(slot => {
+    slot.addEventListener('dragover', e => {
+      e.preventDefault();
+      slot.classList.add('over');
+    });
+    slot.addEventListener('dragleave', () => slot.classList.remove('over'));
+    slot.addEventListener('drop', e => {
+      e.preventDefault();
+      slot.classList.remove('over');
+      const label = e.dataTransfer.getData('text/plain');
+      const chipId = dragData.chipId;
+      dropOnSlot(slot, label, chipId);
+    });
+  });
+}
+
+function dropOnSlot(slot, label, chipId) {
+  const slotNum = parseInt(slot.dataset.slot);
+
+  // If slot already has something, return the old chip
+  if (slotData[slotNum]) {
+    const oldLabel = slotData[slotNum].label;
+    const oldChipId = slotData[slotNum].chipId;
+    slotData[slotNum] = null;
+    returnChip(oldChipId);
+  }
+
+  // If chip is already in another slot, clear that slot
+  Object.keys(slotData).forEach(k => {
+    if (slotData[k] && slotData[k].chipId === chipId) {
+      slotData[k] = null;
+      const s = document.getElementById('slot-' + k);
+      s.querySelector('.slot-content').innerHTML = '<span class="slot-empty-hint">Drop ' + ordinal(k) + ' step here…</span>';
+      s.classList.remove('filled');
+    }
+  });
+
+  slotData[slotNum] = { label, chipId };
+  slot.querySelector('.slot-content').textContent = label;
+  slot.classList.add('filled');
+
+  // Mark chip as used
+  const chip = document.getElementById(chipId);
+  if (chip) chip.classList.add('used');
+
+  // Check if all slots filled
+  if (slotData[1] && slotData[2] && slotData[3]) {
+    document.getElementById('s2-check-btn').classList.add('show');
+  }
+}
+
+function ordinal(n) {
+  return n == 1 ? 'first' : n == 2 ? 'second' : 'third';
+}
+
+function returnChip(chipId) {
+  const chip = document.getElementById(chipId);
+  if (chip) chip.classList.remove('used');
+}
+
+function checkS2() {
+  const order = [slotData[1] && slotData[1].label, slotData[2] && slotData[2].label, slotData[3] && slotData[3].label];
+  const fb = document.getElementById('s2-feedback');
+
+  if (JSON.stringify(order) === JSON.stringify(CORRECT_ORDER)) {
+    fb.className = 'feedback good show';
+    fb.textContent = 'Correct! Control characters must be stripped first so the length measurement is accurate, then the length can be enforced, and finally the now-safe event is logged for audit purposes.';
+
+    // Update right panel
+    const pipeline = document.getElementById('s2-pipeline');
+    pipeline.classList.remove('pipeline');
+    pipeline.style.border = '2px solid var(--green)';
+    document.getElementById('s2-pipeline-content').innerHTML =
+      '<div style="font-family:monospace;font-size:0.88rem;line-height:1.8;color:#a8f0c8;">' +
+      'normal text IGNORE PREVIOUS INSTRUCTIONS' +
+      '<span class="sanitized-badge">[SANITIZED]</span>' +
+      '</div>';
+
+    document.getElementById('s2-check-btn').classList.remove('show');
+    document.getElementById('s2-next').classList.add('show');
+  } else {
+    fb.className = 'feedback bad show';
+    fb.textContent = 'Not quite — think about what needs to happen first before you can enforce a length limit.';
+  }
+}
+
+/* ══════════════════════════════════════
+   STAGE 3 — TRAINING
+═══════════════════════════════════════ */
+let s3Pkgs = new Set();
+let s3LogEntries = 0;
+let s3PkgDone = false;
+let s3LogDone = false;
+let pinIdx = 0;
+
+function addPkg(el, label, key) {
+  if (el.classList.contains('added')) return;
+
+  if (key === 'torch') {
+    const fb = document.getElementById('s3-pkg-fb');
+    fb.className = 'feedback bad show';
+    fb.textContent = "PyTorch isn't needed for this pipeline. Only pin what you actually use.";
+    return;
+  }
+
+  el.classList.add('added');
+  s3Pkgs.add(key);
+
+  // Fill next pinned slot
+  const slot = document.getElementById('pin-' + pinIdx);
+  if (slot) {
+    slot.classList.add('filled');
+    slot.textContent = label;
+    pinIdx++;
+  }
+
+  document.getElementById('s3-pkg-fb').className = 'feedback';
+
+  if (s3Pkgs.size === 3) {
+    s3PkgDone = true;
+    const fb = document.getElementById('s3-pkg-fb');
+    fb.className = 'feedback good show';
+    fb.textContent = 'Perfect. Pinning exact versions means anyone can recreate your exact environment.';
+    checkS3Complete();
+  }
+}
+
+const LOG_TOOLTIPS = {
+  'Dataset version: v2.1': 'Tracks exactly which data snapshot was used — essential for reproducing results.',
+  'sklearn version: 1.4.2': 'Records the exact library version so the training run can be re-created identically.',
+  'Timestamp: 2026-06-14T08:31:00': 'Documents when the run occurred — useful for audits and correlating with data pipeline events.',
+  'Run ID: train-abc-001': 'Unique identifier that links model artifacts back to this specific training run.'
+};
+
+function addLogEntry(el, text, tooltip) {
+  if (el.classList.contains('used')) return;
+  el.classList.add('used');
+  s3LogEntries++;
+
+  const panel = document.getElementById('s3-log-panel');
+  if (s3LogEntries === 1) panel.innerHTML = '';
+
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = '<span class="log-key">' + escapeHtml(text) + '</span><span class="log-tooltip">' + escapeHtml(tooltip) + '</span>';
+  panel.appendChild(entry);
+
+  if (s3LogEntries === 4) {
+    s3LogDone = true;
+    const fb = document.getElementById('s3-log-fb');
+    fb.className = 'feedback good show';
+    fb.textContent = 'Log complete. Every entry here is traceable — if a model behaves unexpectedly in production, this log is where the investigation starts.';
+    checkS3Complete();
+  }
+}
+
+function checkS3Complete() {
+  if (s3PkgDone && s3LogDone) {
+    document.getElementById('s3-next').classList.add('show');
+  }
+}
+
+/* ══════════════════════════════════════
+   STAGE 4 — MODEL ARTIFACTS
+═══════════════════════════════════════ */
+const HASH_A = 'a3f2e1d9b847c056f23e9a017d8c4b3e1f569a20d7e4b8c3f1a2e9d507b846c1';
+const HASH_B = '7c1f3a8e2d09b564f1e7a2c3d89f0b1e4a257c3d68f1b9e2a504d7c38b061f2';
+
+let leftHashed = false;
+let rightHashed = false;
+let tampered = false;
+
+function hashLeft() {
+  leftHashed = true;
+  const el = document.getElementById('s4-left-hash');
+  el.textContent = 'SHA-256: ' + HASH_A;
+  el.classList.add('show');
+  checkBothHashed();
+}
+
+function hashRight() {
+  rightHashed = true;
+  const el = document.getElementById('s4-right-hash');
+  if (!tampered) {
+    el.textContent = 'SHA-256: ' + HASH_A;
+  } else {
+    el.textContent = 'SHA-256: ' + HASH_B;
+  }
+  el.classList.add('show');
+  checkBothHashed();
+}
+
+function checkBothHashed() {
+  if (!leftHashed || !rightHashed) return;
+
+  const cmp = document.getElementById('s4-compare');
+  cmp.classList.add('show');
+
+  if (!tampered) {
+    cmp.className = 'hash-compare show match';
+    cmp.textContent = 'Hashes match ✓';
+    document.getElementById('s4-left-card').classList.add('match');
+    document.getElementById('s4-right-card').classList.add('match');
+    document.getElementById('s4-tamper-btn-wrap').style.display = 'block';
+  } else {
+    cmp.className = 'hash-compare show mismatch';
+    cmp.textContent = 'Hashes do not match ✗';
+    document.getElementById('s4-left-card').classList.remove('match');
+    document.getElementById('s4-right-card').classList.remove('match');
+    document.getElementById('s4-left-card').classList.add('mismatch');
+    document.getElementById('s4-right-card').classList.add('mismatch');
+    document.getElementById('s4-mc').style.display = 'block';
+    document.getElementById('s4-tamper-btn-wrap').style.display = 'none';
+  }
+}
+
+function simulateTamper() {
+  tampered = true;
+  const rightCard = document.getElementById('s4-right-card');
+  rightCard.classList.add('shaking');
+  setTimeout(() => rightCard.classList.remove('shaking'), 600);
+
+  document.getElementById('s4-tamper-badge').classList.add('show');
+
+  // Update right hash if already shown
+  const rightHash = document.getElementById('s4-right-hash');
+  if (rightHash.classList.contains('show')) {
+    rightHash.textContent = 'SHA-256: ' + HASH_B;
+    checkBothHashed();
+  } else {
+    // Force it to show after tamper
+    rightHashed = true;
+    rightHash.textContent = 'SHA-256: ' + HASH_B;
+    rightHash.classList.add('show');
+    checkBothHashed();
+  }
+}
+
+function checkS4(radio) {
+  const val = radio.value;
+  ['A','B','C','D'].forEach(v => {
+    const fb = document.getElementById('s4-fb-' + v);
+    if (fb) fb.classList.remove('show');
+  });
+  const fb = document.getElementById('s4-fb-' + val);
+  if (fb) fb.classList.add('show');
+  if (val === 'B') {
+    document.querySelectorAll('input[name=s4]').forEach(r => r.disabled = true);
+    document.getElementById('s4-next').classList.add('show');
+  }
+}
+
+/* ══════════════════════════════════════
+   STAGE 5 — EVALUATION
+═══════════════════════════════════════ */
+let s5Animated = false;
+let s5Voted = false;
+
+function initStage5() {
+  if (s5Animated) return;
+  s5Animated = true;
+
+  setTimeout(() => {
+    // Animate standard bar to 91%
+    animateBar('s5-bar-standard', 's5-pct-standard', 91, 'green', () => {
+      document.getElementById('s5-verdict-standard').style.display = 'inline-block';
+    });
+    // Animate adversarial bar to 68%
+    setTimeout(() => {
+      animateBar('s5-bar-adv', 's5-pct-adv', 68, 'red', () => {
+        document.getElementById('s5-verdict-adv').style.display = 'inline-block';
+      });
+    }, 400);
+  }, 300);
+}
+
+function animateBar(barId, pctId, target, color, cb) {
+  const bar = document.getElementById(barId);
+  const pct = document.getElementById(pctId);
+  const duration = 1400;
+  const start = performance.now();
+
+  function step(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const val = Math.round(ease * target);
+    bar.style.width = val + '%';
+    pct.textContent = val + '%';
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      bar.style.width = target + '%';
+      pct.textContent = target + '%';
+      if (cb) cb();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function s5Vote(choice) {
+  if (s5Voted) return;
+  const yFb = document.getElementById('s5-fb-yes');
+  const nFb = document.getElementById('s5-fb-no');
+  yFb.classList.remove('show');
+  nFb.classList.remove('show');
+
+  if (choice === 'yes') {
+    yFb.classList.add('show');
+  } else {
+    s5Voted = true;
+    nFb.classList.add('show');
+    // Reveal audit trail
+    const audit = document.getElementById('s5-audit');
+    audit.classList.add('show');
+    const badges = ['ab-1','ab-2','ab-3'];
+    badges.forEach((id, i) => {
+      setTimeout(() => {
+        document.getElementById(id).classList.add('visible');
+      }, (i + 1) * 300);
+    });
+    setTimeout(() => {
+      document.getElementById('s5-next').classList.add('show');
+    }, 1200);
+  }
+}
+
+/* ══════════════════════════════════════
+   STAGE 6 — DEPLOYMENT
+═══════════════════════════════════════ */
+const VALID_KEYS = ['key-student-001', 'key-student-002'];
+let s6SuccessCount = 0;
+let s6Seen = { '401': false, '200': false, '429': false };
+let s6LogEmpty = true;
+
+function sendRequest() {
+  const key = document.getElementById('s6-api-key').value.trim();
+  const logPanel = document.getElementById('s6-log');
+  const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+  if (s6LogEmpty) {
+    logPanel.textContent = '';
+    s6LogEmpty = false;
+  }
+
+  let line = '';
+  let cls = '';
+
+  if (!key || !VALID_KEYS.includes(key)) {
+    line = '[' + ts + '] 401 Unauthorized — invalid API key';
+    cls = 'log-401';
+    s6Seen['401'] = true;
+  } else {
+    if (s6SuccessCount >= 10) {
+      line = '[' + ts + '] 429 Rate Limit Exceeded — max 10 requests per minute';
+      cls = 'log-429';
+      s6Seen['429'] = true;
+    } else {
+      s6SuccessCount++;
+      line = '[' + ts + '] 200 OK — prediction: 1 (confidence: 0.91)';
+      cls = 'log-200';
+      s6Seen['200'] = true;
+    }
+  }
+
+  const entry = document.createElement('div');
+  entry.className = cls;
+  entry.textContent = line;
+  logPanel.appendChild(entry);
+  logPanel.scrollTop = logPanel.scrollHeight;
+
+  // Update badges
+  if (s6Seen['401']) {
+    const b = document.getElementById('badge-401');
+    b.textContent = '401 seen ✓';
+    b.classList.add('seen');
+  }
+  if (s6Seen['200']) {
+    const b = document.getElementById('badge-200');
+    b.textContent = '200 seen ✓';
+    b.classList.add('seen');
+  }
+  if (s6Seen['429']) {
+    const b = document.getElementById('badge-429');
+    b.textContent = '429 seen ✓';
+    b.classList.add('seen');
+  }
+
+  if (s6Seen['401'] && s6Seen['200'] && s6Seen['429']) {
+    const fb = document.getElementById('s6-feedback');
+    fb.className = 'feedback good show';
+    fb.textContent = "You've triggered all three responses. This is exactly how a real API behaves — and why every one of these controls matters.";
+    document.getElementById('s6-next').classList.add('show');
+  }
+}
+
+// Allow Enter key in API input
+document.getElementById('s6-api-key').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendRequest();
+});
+
+/* ══════════════════════════════════════
+   COMPLETION
+═══════════════════════════════════════ */
+function initCompletion() {
+  // Light up pipe nodes
+  const nodes = ['pn-1','pn-2','pn-3','pn-4','pn-5','pn-6'];
+  nodes.forEach((id, i) => {
+    setTimeout(() => {
+      document.getElementById(id).classList.add('lit');
+    }, i * 200);
+  });
+
+  // Confetti
+  launchConfetti();
+}
+
+function launchConfetti() {
+  const colors = ['#4a90d9','#2ecc71','#f1c40f','#e74c3c','#9b59b6','#1abc9c','#ff9966','#fff'];
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const left = Math.random() * 100;
+    const duration = 2.5 + Math.random() * 2.5;
+    const delay = Math.random() * 1.5;
+    const size = 7 + Math.random() * 8;
+    piece.style.cssText = `
+      left: ${left}%;
+      background: ${color};
+      width: ${size}px;
+      height: ${size}px;
+      animation-duration: ${duration}s;
+      animation-delay: ${delay}s;
+    `;
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), (duration + delay + 0.5) * 1000);
+  }
+}
+
+/* ══════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════ */
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Activate intro
+  const intro = document.getElementById('intro');
+  intro.classList.add('active');
+  requestAnimationFrame(() => requestAnimationFrame(() => intro.classList.add('visible')));
+
+  // Init drag-drop for stage 2
+  initDragDrop();
+});
+</script>
+</body>
+</html>
