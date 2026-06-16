@@ -229,7 +229,6 @@
   }
   .data-table tr:last-child td { border-bottom: none; }
   .data-table tr:nth-child(even) td { background: rgba(255,255,255,0.04); }
-  .row-poison td { background: rgba(231,76,60,0.22) !important; color: #ffaaaa; }
 
   .radio-options { display: flex; flex-direction: column; gap: 10px; margin: 0 0 14px; }
   .radio-opt {
@@ -869,7 +868,7 @@
           <tr><td>4</td><td>0.66</td><td>0</td></tr>
           <tr><td>5</td><td>0.73</td><td>0</td></tr>
           <tr><td>6</td><td>0.88</td><td>1</td></tr>
-          <tr class="row-poison"><td>7</td><td>0.02</td><td>1</td></tr>
+          <tr><td>7</td><td>0.02</td><td>1</td></tr>
           <tr><td>8</td><td>0.79</td><td>1</td></tr>
           <tr><td>9</td><td>0.84</td><td>1</td></tr>
         </tbody>
@@ -897,15 +896,18 @@
 
       <div class="feedback bad" id="s1-fb-A">
         Row 2 has a feature_score of 0.78, which is well within the normal range visible in this dataset (0.66–0.91). A label of 0 is perfectly reasonable for that score — there's nothing inconsistent here.
+        <span style="display:block;margin-top:8px;font-size:0.82rem;opacity:0.7;">Try a different option.</span>
       </div>
       <div class="feedback bad" id="s1-fb-B">
         Row 4 has a feature_score of 0.66 and a label of 0. Mid-range scores with label 0 appear elsewhere in the dataset too (row 5: 0.73 → 0). This is consistent with normal variation, not an anomaly.
+        <span style="display:block;margin-top:8px;font-size:0.82rem;opacity:0.7;">Try a different option.</span>
       </div>
       <div class="feedback good" id="s1-fb-C">
         Correct! Row 7 has a feature_score of 0.02 — far below any other row — yet its label is 1. This inconsistency is a classic data poisoning signature. An attacker who controls the data source can insert rows like this to influence how the model learns.
       </div>
       <div class="feedback bad" id="s1-fb-D">
         Row 9 has a feature_score of 0.84, which is similar to rows 1 (0.85) and 6 (0.88). There's nothing unusual about a high score having label 1 — that's exactly what you'd expect in a well-labelled dataset.
+        <span style="display:block;margin-top:8px;font-size:0.82rem;opacity:0.7;">Try a different option.</span>
       </div>
 
       <div class="checklist" id="s1-checklist">
@@ -970,7 +972,10 @@
       </div>
     </div>
 
-    <button class="btn btn-check btn-accent" id="s2-check-btn" onclick="checkS2()">Check Order</button>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-check btn-accent" id="s2-check-btn" onclick="checkS2()">Check Order</button>
+      <button class="btn" id="s2-reset-btn" onclick="resetS2()" style="background:rgba(255,255,255,0.1);color:white;font-size:0.9rem;padding:11px 22px;display:none;">Reset Order</button>
+    </div>
     <div class="feedback" id="s2-feedback"></div>
 
     <button class="btn btn-next" id="s2-next" onclick="goTo('stage3')">NEXT: Training →</button>
@@ -1086,15 +1091,18 @@
       </div>
       <div class="feedback bad" id="s4-fb-A">
         Not quite. Different training would produce a different model file from the start. Here, we're comparing the same file before and after storage — the hash mismatch happened after training, which means the change occurred to the artifact itself, not during training.
+        <span style="display:block;margin-top:8px;font-size:0.82rem;opacity:0.7;">Try a different option.</span>
       </div>
       <div class="feedback good" id="s4-fb-B">
         Exactly. Even a single changed byte produces a completely different SHA-256 hash. This is what makes cryptographic hashing so powerful for integrity verification. The original and tampered files are distinguishable instantly.
       </div>
       <div class="feedback bad" id="s4-fb-C">
         The hash function works correctly — that's exactly why the mismatch was detected. SHA-256 reliably produces different outputs for different inputs. The issue is with the file, not the function.
+        <span style="display:block;margin-top:8px;font-size:0.82rem;opacity:0.7;">Try a different option.</span>
       </div>
       <div class="feedback bad" id="s4-fb-D">
         Hashes don't change on their own. A SHA-256 hash is deterministic: the same bytes always produce the same hash. If the hash changed, the underlying bytes changed. That change demands investigation.
+        <span style="display:block;margin-top:8px;font-size:0.82rem;opacity:0.7;">Try a different option.</span>
       </div>
     </div>
 
@@ -1146,6 +1154,7 @@
         </div>
         <div class="feedback bad" id="s5-fb-yes">
           Not safe. The adversarial accuracy of 68% is below the required 70% threshold. A model that fails adversarial testing may behave unpredictably on edge cases, adversarial inputs, or inputs that differ from the training distribution. Both gates must pass.
+          <span style="display:block;margin-top:8px;font-size:0.82rem;opacity:0.7;">Choose the other option to continue.</span>
         </div>
         <div class="feedback good" id="s5-fb-no">
           Correct. An approval gate requires ALL checks to pass. 91% standard accuracy looks good — but the 68% adversarial score reveals a weakness that could be exploited. The model needs more work before deployment.
@@ -1481,11 +1490,34 @@ function checkS2() {
       '</div>';
 
     document.getElementById('s2-check-btn').classList.remove('show');
+    document.getElementById('s2-reset-btn').style.display = 'none';
     document.getElementById('s2-next').classList.add('show');
   } else {
     fb.className = 'feedback bad show';
-    fb.textContent = 'Not quite — think about what needs to happen first before you can enforce a length limit.';
+    fb.innerHTML = 'Not quite — think about what needs to happen first before you can enforce a length limit.<span style="display:block;margin-top:8px;font-size:0.82rem;opacity:0.7;">Try a different order.</span>';
+    document.getElementById('s2-reset-btn').style.display = 'inline-block';
   }
+}
+
+function resetS2() {
+  // Clear all slots
+  [1, 2, 3].forEach(n => {
+    slotData[n] = null;
+    const slot = document.getElementById('slot-' + n);
+    slot.querySelector('.slot-content').innerHTML = '<span class="slot-empty-hint">Drop ' + ordinal(n) + ' step here…</span>';
+    slot.classList.remove('filled');
+  });
+  // Return all chips
+  ['chip-remove', 'chip-length', 'chip-log'].forEach(id => {
+    const chip = document.getElementById(id);
+    if (chip) chip.classList.remove('used');
+  });
+  // Hide check button and feedback
+  document.getElementById('s2-check-btn').classList.remove('show');
+  document.getElementById('s2-reset-btn').style.display = 'none';
+  const fb = document.getElementById('s2-feedback');
+  fb.className = 'feedback';
+  fb.textContent = '';
 }
 
 /* ══════════════════════════════════════
