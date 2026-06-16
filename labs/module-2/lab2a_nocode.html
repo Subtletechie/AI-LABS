@@ -137,6 +137,16 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
+  }
+  .stage-counter {
+    margin-left: auto;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.45);
+    font-family: var(--font-head);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
   }
   .stage-badge {
     background: var(--accent);
@@ -590,9 +600,11 @@
   .verdict-pass { background: var(--green); color: #0d2b17; }
   .verdict-fail { background: var(--red); color: white; }
 
-  .approval-btns { display: flex; gap: 14px; margin-top: 22px; flex-wrap: wrap; }
+  .approval-btns { display: flex; gap: 14px; margin-top: 22px; flex-wrap: wrap; align-items: center; }
   .btn-yes { background: var(--green); color: #0d2b17; font-size: 1rem; }
   .btn-no  { background: var(--red);   color: white;   font-size: 1rem; }
+  .btn-vote-disabled { opacity: 0.35; pointer-events: none; cursor: default; }
+  #s5-reviewing { font-size: 0.82rem; color: rgba(255,255,255,0.5); font-style: italic; margin-top: 10px; display: none; }
 
   .audit-trail {
     display: none;
@@ -849,13 +861,14 @@
 ═══════════════════════════════════════ -->
 <section id="stage1" class="section">
   <div class="section-inner">
-    <h2 class="stage-title"><span class="stage-badge">Stage 1</span> Data Ingestion</h2>
+    <h2 class="stage-title"><span class="stage-badge">Stage 1</span> Data Ingestion <span class="stage-counter">Stage 1 of 6</span></h2>
     <div class="concept-box">
       Data poisoning happens when an attacker quietly modifies training data before it reaches the model. Because the change is subtle, it often passes unnoticed — until the model behaves unexpectedly in production.
     </div>
 
     <div class="card">
       <div class="task-label">Examine the incoming training data:</div>
+      <p style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-bottom:4px;"><em>feature_score: how confident the system is that this row matches its label, from 0 (no confidence) to 1 (full confidence).</em></p>
       <table class="data-table">
         <thead>
           <tr><th>row_id</th><th>feature_score</th><th>label</th></tr>
@@ -928,15 +941,15 @@
 ═══════════════════════════════════════ -->
 <section id="stage2" class="section">
   <div class="section-inner">
-    <h2 class="stage-title"><span class="stage-badge">Stage 2</span> Data Processing</h2>
+    <h2 class="stage-title"><span class="stage-badge">Stage 2</span> Data Processing <span class="stage-counter">Stage 2 of 6</span></h2>
     <div class="concept-box">
-      Injection attacks embed special characters or commands inside input data. If your preprocessing function doesn't sanitize inputs, those characters survive into downstream systems — including prompts, logs, or databases.
+      Injection attacks embed special characters or commands inside input data. If your preprocessing function doesn't sanitize inputs, those characters survive into downstream systems — including prompts, logs, or databases. Each step changes what the next step sees — get the order right and the pipeline is safe; get it wrong and a step does nothing useful.
     </div>
 
     <div class="panels-row">
       <div class="panel-box attacker">
         <div class="panel-label">Attacker Input</div>
-        <div class="attacker-text">normal text<span class="newline-sym">↵</span><span class="newline-sym">↵</span>IGNORE PREVIOUS INSTRUCTIONS<span class="newline-sym">↵</span></div>
+        <div class="attacker-text">normal text<span class="newline-sym" style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin:0 2px;">(new line)</span><span class="newline-sym" style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin:0 2px;">(new line)</span>IGNORE PREVIOUS INSTRUCTIONS<span class="newline-sym" style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin:0 2px;">(new line)</span></div>
       </div>
       <div class="panel-box pipeline" id="s2-pipeline">
         <div class="panel-label">Your Pipeline</div>
@@ -987,7 +1000,7 @@
 ═══════════════════════════════════════ -->
 <section id="stage3" class="section">
   <div class="section-inner">
-    <h2 class="stage-title"><span class="stage-badge">Stage 3</span> Training</h2>
+    <h2 class="stage-title"><span class="stage-badge">Stage 3</span> Training <span class="stage-counter">Stage 3 of 6</span></h2>
     <div class="concept-box">
       Unpinned dependencies mean your training environment can silently change. A library update might alter how a model is built — making results impossible to reproduce and creating hidden vulnerabilities.
     </div>
@@ -1041,7 +1054,7 @@
 ═══════════════════════════════════════ -->
 <section id="stage4" class="section">
   <div class="section-inner">
-    <h2 class="stage-title"><span class="stage-badge">Stage 4</span> Model Artifacts</h2>
+    <h2 class="stage-title"><span class="stage-badge">Stage 4</span> Model Artifacts <span class="stage-counter">Stage 4 of 6</span></h2>
     <div class="concept-box">
       A model file is just bytes. Without a cryptographic hash, you have no way to know if those bytes were modified after training — by an attacker, a storage error, or a supply-chain substitution.
     </div>
@@ -1115,7 +1128,7 @@
 ═══════════════════════════════════════ -->
 <section id="stage5" class="section">
   <div class="section-inner">
-    <h2 class="stage-title"><span class="stage-badge">Stage 5</span> Evaluation &amp; Approval</h2>
+    <h2 class="stage-title"><span class="stage-badge">Stage 5</span> Evaluation &amp; Approval <span class="stage-counter">Stage 5 of 6</span></h2>
     <div class="concept-box">
       A model that scores 91% on standard tests can still be dangerous. Adversarial test sets probe for hidden weaknesses — biases, backdoors, edge cases. Both gates must pass before a model is safe to deploy.
     </div>
@@ -1149,9 +1162,10 @@
       <div style="margin-top:20px;">
         <div class="task-label">Should this model be approved for deployment?</div>
         <div class="approval-btns">
-          <button class="btn btn-yes" onclick="s5Vote('yes')">YES — Approve this model</button>
-          <button class="btn btn-no"  onclick="s5Vote('no')">NO — Reject this model</button>
+          <button class="btn btn-yes btn-vote-disabled" id="s5-btn-yes" onclick="s5Vote('yes')">YES — Approve this model</button>
+          <button class="btn btn-no btn-vote-disabled"  id="s5-btn-no"  onclick="s5Vote('no')">NO — Reject this model</button>
         </div>
+        <div id="s5-reviewing">Reviewing scores…</div>
         <div class="feedback bad" id="s5-fb-yes">
           Not safe. The adversarial accuracy of 68% is below the required 70% threshold. A model that fails adversarial testing may behave unpredictably on edge cases, adversarial inputs, or inputs that differ from the training distribution. Both gates must pass.
           <span style="display:block;margin-top:8px;font-size:0.82rem;opacity:0.7;">Choose the other option to continue.</span>
@@ -1181,9 +1195,9 @@
 ═══════════════════════════════════════ -->
 <section id="stage6" class="section">
   <div class="section-inner">
-    <h2 class="stage-title"><span class="stage-badge">Stage 6</span> Deployment &amp; Monitoring</h2>
+    <h2 class="stage-title"><span class="stage-badge">Stage 6</span> Deployment &amp; Monitoring <span class="stage-counter">Stage 6 of 6</span></h2>
     <div class="concept-box">
-      A model endpoint without authentication is open to anyone. Rate limiting prevents abuse. Logging every request is the foundation of all monitoring — without it, you have no visibility into how your model is being used.
+      A model endpoint without authentication is open to anyone. Rate limiting prevents abuse. Logging every request is the foundation of all monitoring — without it, you have no visibility into how your model is being used. Try sending more than 10 requests in a row using a valid key and see what happens.
     </div>
 
     <div class="api-grid">
@@ -1626,6 +1640,19 @@ function hashRight() {
   checkBothHashed();
 }
 
+function highlightHashDiffs(elId, hashA, hashB) {
+  const prefix = 'SHA-256: ';
+  let html = prefix;
+  for (let i = 0; i < hashA.length; i++) {
+    if (hashA[i] !== hashB[i]) {
+      html += '<span style="color:#f1c40f;font-weight:bold;">' + hashA[i] + '</span>';
+    } else {
+      html += hashA[i];
+    }
+  }
+  document.getElementById(elId).innerHTML = html;
+}
+
 function checkBothHashed() {
   if (!leftHashed || !rightHashed) return;
 
@@ -1645,6 +1672,9 @@ function checkBothHashed() {
     document.getElementById('s4-right-card').classList.remove('match');
     document.getElementById('s4-left-card').classList.add('mismatch');
     document.getElementById('s4-right-card').classList.add('mismatch');
+    // Highlight differing characters in both hash displays
+    highlightHashDiffs('s4-left-hash', HASH_A, HASH_B);
+    highlightHashDiffs('s4-right-hash', HASH_B, HASH_A);
     document.getElementById('s4-mc').style.display = 'block';
     document.getElementById('s4-tamper-btn-wrap').style.display = 'none';
   }
@@ -1701,10 +1731,18 @@ function initStage5() {
     animateBar('s5-bar-standard', 's5-pct-standard', 91, 'green', () => {
       document.getElementById('s5-verdict-standard').style.display = 'inline-block';
     });
-    // Animate adversarial bar to 68%
+    // Animate adversarial bar to 68%, then pause before enabling buttons
     setTimeout(() => {
       animateBar('s5-bar-adv', 's5-pct-adv', 68, 'red', () => {
         document.getElementById('s5-verdict-adv').style.display = 'inline-block';
+        // Show reviewing label, then enable buttons after 1.5s
+        const reviewing = document.getElementById('s5-reviewing');
+        reviewing.style.display = 'block';
+        setTimeout(() => {
+          reviewing.style.display = 'none';
+          document.getElementById('s5-btn-yes').classList.remove('btn-vote-disabled');
+          document.getElementById('s5-btn-no').classList.remove('btn-vote-disabled');
+        }, 1500);
       });
     }, 400);
   }, 300);
