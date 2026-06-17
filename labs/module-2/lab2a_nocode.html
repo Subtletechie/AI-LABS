@@ -1005,12 +1005,18 @@
       Unpinned dependencies mean your training environment can silently change. A library update might alter how a model is built — making results impossible to reproduce and creating hidden vulnerabilities.
     </div>
 
+    <div class="concept-box">
+      A dependency is an outside library your code relies on to run. Pinning means locking the exact version number. Without it, a library could update or be swapped without your knowledge, silently changing how your model trains. Before you decide what to pin, research each library listed below — find out specifically what it does and what it is commonly used for. Use that research to decide which ones this training pipeline actually depends on, and which ones do not belong here.
+    </div>
+
     <div class="two-col">
       <div class="col-panel">
         <div class="col-panel-title">Unpinned (Unsafe)</div>
         <div class="unpinned-item">scikit-learn</div>
         <div class="unpinned-item">pandas</div>
         <div class="unpinned-item">numpy</div>
+        <div class="unpinned-item">requests</div>
+        <div class="unpinned-item">matplotlib</div>
       </div>
       <div class="col-panel">
         <div class="col-panel-title">Your Pinned Requirements</div>
@@ -1025,6 +1031,8 @@
       <div class="pkg-card" id="pkg-sklearn" onclick="addPkg(this,'scikit-learn==1.4.2','sklearn')">scikit-learn==1.4.2</div>
       <div class="pkg-card" id="pkg-pandas"  onclick="addPkg(this,'pandas==2.2.1','pandas')">pandas==2.2.1</div>
       <div class="pkg-card" id="pkg-numpy"   onclick="addPkg(this,'numpy==1.26.4','numpy')">numpy==1.26.4</div>
+      <div class="pkg-card decoy" id="pkg-requests"   onclick="addPkg(this,'requests==2.31.0','requests')">requests==2.31.0</div>
+      <div class="pkg-card decoy" id="pkg-matplotlib" onclick="addPkg(this,'matplotlib==3.8.4','matplotlib')">matplotlib==3.8.4</div>
       <div class="pkg-card decoy" id="pkg-torch" onclick="addPkg(this,'torch==2.3.0','torch')">torch==2.3.0</div>
     </div>
     <div class="feedback" id="s3-pkg-fb"></div>
@@ -1546,10 +1554,10 @@ let pinIdx = 0;
 function addPkg(el, label, key) {
   if (el.classList.contains('added')) return;
 
-  if (key === 'torch') {
+  if (key === 'torch' || key === 'requests' || key === 'matplotlib') {
     const fb = document.getElementById('s3-pkg-fb');
     fb.className = 'feedback bad show';
-    fb.textContent = "PyTorch isn't needed for this pipeline. Only pin what you actually use.";
+    fb.textContent = "This isn't a dependency this training pipeline actually relies on to function. Research what this library is used for and reconsider whether it belongs in this pipeline.";
     return;
   }
 
