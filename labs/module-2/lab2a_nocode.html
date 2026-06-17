@@ -66,6 +66,25 @@
     border-radius: 99px;
     transition: width 0.6s cubic-bezier(.4,0,.2,1);
   }
+  #progress-dots { display: flex; gap: 6px; flex-shrink: 0; }
+  .progress-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-head);
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.4);
+    cursor: default;
+    transition: background 0.2s, color 0.2s, transform 0.15s;
+  }
+  .progress-dot.reachable { background: rgba(74,144,217,0.5); color: white; cursor: pointer; }
+  .progress-dot.reachable:hover { background: var(--accent); transform: scale(1.1); }
+  .progress-dot.current { background: var(--green); color: #0d2b17; }
 
   /* ── SECTIONS ── */
   .section {
@@ -207,6 +226,8 @@
   .btn-start { background: var(--accent); color: white; font-size: 1.25rem; padding: 18px 52px; }
   .btn-next { background: var(--green); color: #0d2b17; margin-top: 24px; display: none; }
   .btn-next.show { display: inline-block; }
+  .stage-nav-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .btn-back { background: rgba(255,255,255,0.1); color: white; font-size: 0.9rem; padding: 13px 26px; margin-top: 24px; }
   .btn-red { background: var(--red); color: white; }
   .btn-green { background: var(--green); color: #0d2b17; }
   .btn-check { background: var(--accent); color: white; display: none; }
@@ -839,6 +860,7 @@
   <div id="progress-bar-track">
     <div id="progress-bar-fill"></div>
   </div>
+  <div id="progress-dots"></div>
 </div>
 
 <!-- DRAG GHOST -->
@@ -933,7 +955,10 @@
       </div>
     </div>
 
-    <button class="btn btn-next" id="s1-next" onclick="goTo('stage2')">NEXT: Data Processing →</button>
+    <div class="stage-nav-row">
+      <button class="btn btn-back" onclick="goBack('stage1')">← BACK</button>
+      <button class="btn btn-next" id="s1-next" onclick="goTo('stage2')">NEXT: Data Processing →</button>
+    </div>
   </div>
 </section>
 
@@ -992,7 +1017,10 @@
     </div>
     <div class="feedback" id="s2-feedback"></div>
 
-    <button class="btn btn-next" id="s2-next" onclick="goTo('stage3')">NEXT: Training →</button>
+    <div class="stage-nav-row">
+      <button class="btn btn-back" onclick="goBack('stage2')">← BACK</button>
+      <button class="btn btn-next" id="s2-next" onclick="goTo('stage3')">NEXT: Training →</button>
+    </div>
   </div>
 </section>
 
@@ -1054,7 +1082,10 @@
     </div>
     <div class="feedback" id="s3-log-fb"></div>
 
-    <button class="btn btn-next" id="s3-next" onclick="goTo('stage4')">NEXT: Model Artifacts →</button>
+    <div class="stage-nav-row">
+      <button class="btn btn-back" onclick="goBack('stage3')">← BACK</button>
+      <button class="btn btn-next" id="s3-next" onclick="goTo('stage4')">NEXT: Model Artifacts →</button>
+    </div>
   </div>
 </section>
 
@@ -1132,7 +1163,10 @@
       </div>
     </div>
 
-    <button class="btn btn-next" id="s4-next" onclick="goTo('stage5')">NEXT: Evaluation →</button>
+    <div class="stage-nav-row">
+      <button class="btn btn-back" onclick="goBack('stage4')">← BACK</button>
+      <button class="btn btn-next" id="s4-next" onclick="goTo('stage5')">NEXT: Evaluation →</button>
+    </div>
   </div>
 </section>
 
@@ -1199,7 +1233,10 @@
       <div class="audit-caption">A complete audit trail means you can always reproduce exactly what was trained and why it was approved — or rejected.</div>
     </div>
 
-    <button class="btn btn-next" id="s5-next" onclick="goTo('stage6')">NEXT: Deployment →</button>
+    <div class="stage-nav-row">
+      <button class="btn btn-back" onclick="goBack('stage5')">← BACK</button>
+      <button class="btn btn-next" id="s5-next" onclick="goTo('stage6')">NEXT: Deployment →</button>
+    </div>
   </div>
 </section>
 
@@ -1234,7 +1271,10 @@
     </div>
 
     <div class="feedback" id="s6-feedback"></div>
-    <button class="btn btn-next" id="s6-next" onclick="goTo('completion')">NEXT: Complete Lab →</button>
+    <div class="stage-nav-row">
+      <button class="btn btn-back" onclick="goBack('stage6')">← BACK</button>
+      <button class="btn btn-next" id="s6-next" onclick="goTo('completion')">NEXT: Complete Lab →</button>
+    </div>
   </div>
 </section>
 
@@ -1279,6 +1319,7 @@ const STAGE_LABELS = ['','Stage 1 / 6','Stage 2 / 6','Stage 3 / 6','Stage 4 / 6'
 const PROGRESS = [0, 16, 33, 50, 66, 83, 100, 100];
 
 let currentIdx = 0;
+let maxReachedIdx = 0;
 
 function goTo(id) {
   const newIdx = STAGES.indexOf(id);
@@ -1296,8 +1337,34 @@ function goTo(id) {
   }
 }
 
+function goBack(id) {
+  const idx = STAGES.indexOf(id);
+  if (idx > 0) goTo(STAGES[idx - 1]);
+}
+
+function jumpToStage(idx) {
+  if (idx <= maxReachedIdx) goTo(STAGES[idx]);
+}
+
+function renderProgressDots(currentStageIdx) {
+  const dotsWrap = document.getElementById('progress-dots');
+  dotsWrap.innerHTML = '';
+  for (let i = 1; i <= 6; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'progress-dot';
+    dot.textContent = i;
+    if (i <= maxReachedIdx) {
+      dot.classList.add('reachable');
+      dot.onclick = () => jumpToStage(i);
+    }
+    if (i === currentStageIdx) dot.classList.add('current');
+    dotsWrap.appendChild(dot);
+  }
+}
+
 function activateSection(id, idx) {
   currentIdx = idx;
+  if (idx > maxReachedIdx) maxReachedIdx = idx;
   const el = document.getElementById(id);
   el.classList.add('active');
   requestAnimationFrame(() => {
@@ -1317,6 +1384,7 @@ function activateSection(id, idx) {
     wrap.classList.add('visible');
     label.textContent = STAGE_LABELS[idx];
     fill.style.width = PROGRESS[idx] + '%';
+    renderProgressDots(idx);
   }
 
   // Stage-specific on-enter hooks
