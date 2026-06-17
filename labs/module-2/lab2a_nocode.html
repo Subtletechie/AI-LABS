@@ -1210,7 +1210,7 @@
   <div class="section-inner">
     <h2 class="stage-title"><span class="stage-badge">Stage 6</span> Deployment &amp; Monitoring <span class="stage-counter">Stage 6 of 6</span></h2>
     <div class="concept-box">
-      A model endpoint without authentication is open to anyone. Rate limiting prevents abuse. Logging every request is the foundation of all monitoring — without it, you have no visibility into how your model is being used. Try sending more than 10 requests in a row using a valid key and see what happens.
+      A model endpoint without authentication is open to anyone. Rate limiting prevents abuse. Logging every request is the foundation of all monitoring — without it, you have no visibility into how your model is being used. Try sending more than 10 requests in a row using a valid key and see what happens. Notice that an invalid key always returns 401, no matter how many times you send it — it never triggers the rate limit. That's because rate limiting tracks usage per authenticated user. An invalid key was never let in in the first place, so there's nothing to count. Only requests from a recognized, valid key are tracked and counted toward the limit.
     </div>
 
     <div class="api-grid">
