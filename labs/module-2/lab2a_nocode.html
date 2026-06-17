@@ -1065,7 +1065,11 @@
   <div class="section-inner">
     <h2 class="stage-title"><span class="stage-badge">Stage 4</span> Model Artifacts <span class="stage-counter">Stage 4 of 6</span></h2>
     <div class="concept-box">
-      A model file is just bytes. Without a cryptographic hash, you have no way to know if those bytes were modified after training — by an attacker, a storage error, or a supply-chain substitution.
+      A hash is like a fingerprint for a file. No matter how big the file is, a hashing tool turns it into one short code made of letters and numbers. The important part: if even one tiny piece of the file changes, the fingerprint changes completely too.
+      <br><br>
+      Why does this matter for AI pipelines? A trained model file is one of the most valuable things your pipeline produces. If an attacker quietly swaps it, tampers with it, or injects a backdoor into it before it reaches deployment, you need a way to detect that change instantly — without re-running training or manually inspecting the file.
+      <br><br>
+      In this exercise, you have two copies of the same model file. You'll generate a fingerprint for each one. If both fingerprints match, you know the files are identical and untouched. Then you'll simulate an attacker secretly changing one tiny piece of one file, and watch what happens to its fingerprint. This is exactly how real security systems verify a model hasn't been tampered with anywhere between training and deployment.
     </div>
 
     <div class="model-cards">
